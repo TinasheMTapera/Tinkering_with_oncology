@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Data Science in Oncology - Understanding Survival Rates</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<link href="site_libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
+<script src="site_libs/htmlwidgets-1.6.2/htmlwidgets.js"></script>
+<script src="site_libs/plotly-binding-4.10.4/plotly.js"></script>
+<script src="site_libs/typedarray-0.1/typedarray.min.js"></script>
+<script src="site_libs/jquery-3.5.1/jquery.min.js"></script>
+<link href="site_libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet">
+<script src="site_libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
+<link href="site_libs/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet">
+<script src="site_libs/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Data Science in Oncology</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html">
+ <span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./Survival_Rates.html" aria-current="page">
+ <span class="menu-text">Understanding Survival Rates</span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#patient-journeys" id="toc-patient-journeys" class="nav-link active" data-scroll-target="#patient-journeys">Patient Journeys</a>
+  <ul class="collapse">
+  <li><a href="#fetching-the-data" id="toc-fetching-the-data" class="nav-link" data-scroll-target="#fetching-the-data">Fetching the Data</a></li>
+  </ul></li>
+  <li><a href="#change-in-survival-rate-over-time" id="toc-change-in-survival-rate-over-time" class="nav-link" data-scroll-target="#change-in-survival-rate-over-time">Change in Survival Rate Over Time</a></li>
+  <li><a href="#conlcusion" id="toc-conlcusion" class="nav-link" data-scroll-target="#conlcusion">Conlcusion</a></li>
+  <li><a href="#pkgs" id="toc-pkgs" class="nav-link" data-scroll-target="#pkgs">Pkgs</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Understanding Survival Rates</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>An important caveat about understanding cancer is that treatment is not necessarily about “curing” the disease; to summarise <a href="https://www.youtube.com/watch?v=cepUz29tqEI">Hank Green, a YouTuber who documented his diagnosis and treatment</a>, of the 9000 Americans who develop Hodgkin Lymphoma, 900 die. “Boom, that’s your statistic right there, 10%, right? Nope, not really!”</p>
+<p>Survival rates are not designed to be interpreted as simply as that; according to the CDC, such interpretations don’t take into account factors like the age of the individual at time of diagnosis, the duration of the disease, the stage of the cancer, and sophistication of available treatment and technology, and many other factors. Let’s take a look at some data to understand this better.</p>
+<section id="patient-journeys" class="level2">
+<h2 class="anchored" data-anchor-id="patient-journeys">Patient Journeys</h2>
+<p>I found a small data set from <a href="https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america">Our World In Data</a> that we can use to visualize how patients’ journeys are not always the same.</p>
+<section id="fetching-the-data" class="level3">
+<h3 class="anchored" data-anchor-id="fetching-the-data">Fetching the Data</h3>
+<p>We’ll use the <code>data.world</code> package to pull directly from the site and use a short SQL query to check the tables and pull the data into a dataframe:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>({</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(ggrain)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(plotly)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(data.world)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'readr' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'dplyr' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'ggrain' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'plotly' was built under R version 4.2.3</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ds <span class="ot">&lt;-</span> <span class="st">"https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america"</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>tables <span class="ot">&lt;-</span> data.world<span class="sc">::</span><span class="fu">query</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    data.world<span class="sc">::</span><span class="fu">qry_sql</span>(<span class="st">"SELECT * FROM Tables"</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataset =</span> ds</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1 Columns: 6
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (5): tableId, tableName, tableTitle, owner, dataset
+lgl (1): tableDescription
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(tables)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 6
+  tableId                    tableName tableTitle tableDescription owner dataset
+  &lt;chr&gt;                      &lt;chr&gt;     &lt;chr&gt;      &lt;lgl&gt;            &lt;chr&gt; &lt;chr&gt;  
+1 five_year_cancer_survival… five_yea… five_year… NA               make… 2018w4…</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>query <span class="ot">&lt;-</span> <span class="st">"SELECT * from five_year_cancer_survival_rates_in_usa"</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>five_yr <span class="ot">&lt;-</span> data.world<span class="sc">::</span><span class="fu">query</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    data.world<span class="sc">::</span><span class="fu">qry_sql</span>(query),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">dataset =</span> ds</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1887 Columns: 5
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (3): race, gender, cancer_type
+dbl (2): survival_rate, year
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>five_yr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,887 × 5
+   survival_rate  year race      gender  cancer_type
+           &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;   &lt;chr&gt;      
+ 1         0.559  1977 All races females All cancers
+ 2         0.55   1980 All races females All cancers
+ 3         0.551  1983 All races females All cancers
+ 4         0.576  1986 All races females All cancers
+ 5         0.596  1989 All races females All cancers
+ 6         0.609  1992 All races females All cancers
+ 7         0.618  1995 All races females All cancers
+ 8         0.511  1989 All races males   All cancers
+ 9         0.591  1992 All races males   All cancers
+10         0.608  1995 All races males   All cancers
+# ℹ 1,877 more rows</code></pre>
+</div>
+</div>
+<p>From glimpsing this data, we can see that the term “survival rate” can be broken down by race, gender, and cancer type. Essentially, each row tells us what the 5-year survival rate would be that year for a person who contracts that cancer.</p>
+<p>Let’s visualize:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="dv">1</span>, <span class="at">y =</span> survival_rate, <span class="at">fill =</span> race, <span class="at">colour =</span> race)) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_rain</span>(<span class="at">alpha =</span> .<span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_blank</span>(), <span class="at">axis.title.y =</span> <span class="fu">element_blank</span>())<span class="sc">+</span> </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Survival rates of aspects of cancer over time"</span>, <span class="at">subtitle =</span> <span class="st">"Race"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing non-finite values
+(`stat_half_ydensity()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing non-finite values (`stat_boxplot()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing missing values (`geom_point_sorted()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Survival_Rates_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>     <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="dv">1</span>, <span class="at">y =</span> survival_rate, <span class="at">fill =</span> gender, <span class="at">colour =</span> gender)) <span class="sc">+</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_rain</span>(<span class="at">alpha =</span> .<span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_blank</span>(), <span class="at">axis.title.y =</span> <span class="fu">element_blank</span>())<span class="sc">+</span> </span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Survival rates of aspects of cancer over time"</span>, <span class="at">subtitle =</span> <span class="st">"Gender"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing non-finite values
+(`stat_half_ydensity()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing non-finite values (`stat_boxplot()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing missing values (`geom_point_sorted()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Survival_Rates_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> cancer_type, <span class="at">y =</span> survival_rate)) <span class="sc">+</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_violin</span>() <span class="sc">+</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>))<span class="sc">+</span> </span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Survival rates of aspects of cancer over time"</span>, <span class="at">subtitle =</span> <span class="st">"Cancer type"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 221 rows containing non-finite values (`stat_ydensity()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Survival_Rates_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>These data appear to be a bit of a mish mosh, but remember that this is <em>over time</em>. Let’s try and put that in perspective by making something similar to the <a href="https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america">original plot</a>.</p>
+<p>Let’s take a look at leukemia for example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(cancer_type <span class="sc">==</span> <span class="st">"Leukemia"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> year, <span class="at">y =</span> survival_rate, <span class="at">colour =</span> race)) <span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_grid</span>(gender<span class="sc">~</span>cancer_type)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 4 rows containing missing values (`geom_line()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Survival_Rates_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>This shows an upward trend overall, but there wouldn’t be enough reasonable room to plot each and every combination of variables. We should reasonably compress some of them. I’m going to assume that we wouldn’t be missing out on too much if we ignored intermittent downward trends, so maybe it would be interesting to see the change in survival rate over time?</p>
+</section>
+</section>
+<section id="change-in-survival-rate-over-time" class="level2">
+<h2 class="anchored" data-anchor-id="change-in-survival-rate-over-time">Change in Survival Rate Over Time</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(cancer_type <span class="sc">==</span> <span class="st">"Leukemia"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(survival_rate)) <span class="sc">%&gt;%</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(race, gender) <span class="sc">%&gt;%</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">survival_rate_change =</span> <span class="fu">last</span>(survival_rate) <span class="sc">-</span> <span class="fu">first</span>(survival_rate))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'race'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 9 × 3
+# Groups:   race [3]
+  race      gender  survival_rate_change
+  &lt;chr&gt;     &lt;chr&gt;                  &lt;dbl&gt;
+1 All races females                0.261
+2 All races males                  0.322
+3 All races total                  0.296
+4 Black     females                0.194
+5 Black     males                  0.286
+6 Black     total                  0.244
+7 White     females                0.272
+8 White     males                  0.324
+9 White     total                  0.508</code></pre>
+</div>
+</div>
+<p>In this table, the percent of people who survive leukemia has increased by the value in the rightmost column. We can think of this as an “improvement in outcomes” measure over time. Let’s do this for all cancers:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(survival_rate)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(race, gender, cancer_type) <span class="sc">%&gt;%</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">survival_rate_change =</span> <span class="fu">last</span>(survival_rate) <span class="sc">-</span> <span class="fu">first</span>(survival_rate)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(survival_rate_change)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'race', 'gender'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 141 × 4
+# Groups:   race, gender [9]
+   race      gender  cancer_type       survival_rate_change
+   &lt;chr&gt;     &lt;chr&gt;   &lt;chr&gt;                            &lt;dbl&gt;
+ 1 Black     females Skin                          -0.146  
+ 2 Black     males   Skin                          -0.0710 
+ 3 All races males   All cancers                   -0.0390 
+ 4 All races females Cervix uteri                  -0.00300
+ 5 All races total   Cervix uteri                  -0.00300
+ 6 Black     total   All cancers                    0.00200
+ 7 Black     females Pancreas                       0.047  
+ 8 All races males   Thyroid                        0.0510 
+ 9 All races males   Lung and bronchus              0.055  
+10 All races males   Bladder                        0.0550 
+# ℹ 131 more rows</code></pre>
+</div>
+</div>
+<p>This is interesting. We can now see that improvement varies by race, gender, and cancer type, with some survival rates actually <em>decreasing</em> over time. That’s worrying. Let’s plot this to see the full gambit:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>five_yr <span class="sc">%&gt;%</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(survival_rate)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(race, gender, cancer_type) <span class="sc">%&gt;%</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">survival_rate_change =</span> <span class="fu">last</span>(survival_rate) <span class="sc">-</span> <span class="fu">first</span>(survival_rate)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(survival_rate_change) <span class="ot">-&gt;</span> five_yr_change</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'race', 'gender'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> five_yr_change <span class="sc">%&gt;%</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y =</span> survival_rate_change, <span class="at">x=</span>cancer_type, <span class="at">fill=</span>gender)) <span class="sc">+</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_col</span>(<span class="at">position =</span> <span class="st">"dodge"</span>) <span class="sc">+</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_grid</span>(<span class="sc">~</span>race) <span class="sc">+</span> </span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Change in 5-year Survival Rate % of Different Cancers"</span>, <span class="at">y =</span> <span class="st">"Survival Rate Change from 1977 to 2013"</span>, </span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"The plot shows how the percentage of people who survive 5 years after diagnosis has changed over the last 40 years."</span>)</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplotly</span>(pp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="plotly html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-f624ee26b632ea473e56" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-f624ee26b632ea473e56">{"x":{"data":[{"orientation":"h","width":[0.44999999999999929,0.30000000000000027,0.30000000000000071,0.29999999999999716,0.30000000000000071,0.30000000000000071,0.44999999999999929,0.29999999999999982,0.30000000000000071,0.30000000000000004,0.30000000000000071,0.30000000000000071,0.45000000000000018,0.30000000000000071,0.29999999999999893,0.30000000000000071],"base":[-0.0030000000000000027,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.0030000000000000027,0.060999999999999943,0.061000000000000006,0.061999999999999944,0.073000000000000009,0.093999999999999972,0.10700000000000004,0.11399999999999999,0.11499999999999999,0.1319999999999999,0.14800000000000002,0.16000000000000003,0.16300000000000003,0.17999999999999997,0.26100000000000001,0.26500000000000001],"y":[4.7750000000000004,1.7,12.699999999999999,16.699999999999999,9.6999999999999993,14.699999999999999,11.775,2.7000000000000002,8.6999999999999993,0.69999999999999996,6.7000000000000002,5.7000000000000002,3.7749999999999999,15.699999999999999,7.7000000000000002,10.699999999999999],"text":["cancer_type: Cervix uteri<br />survival_rate_change: -0.003<br />gender: females","cancer_type: Bladder<br />survival_rate_change:  0.061<br />gender: females","cancer_type: Pancreas<br />survival_rate_change:  0.061<br />gender: females","cancer_type: Thyroid<br />survival_rate_change:  0.062<br />gender: females","cancer_type: Lung and bronchus<br />survival_rate_change:  0.073<br />gender: females","cancer_type: Skin<br />survival_rate_change:  0.094<br />gender: females","cancer_type: Ovary<br />survival_rate_change:  0.107<br />gender: females","cancer_type: Brain and nervous system<br />survival_rate_change:  0.114<br />gender: females","cancer_type: Liver<br />survival_rate_change:  0.115<br />gender: females","cancer_type: All cancers<br />survival_rate_change:  0.132<br />gender: females","cancer_type: Esophagus<br />survival_rate_change:  0.148<br />gender: females","cancer_type: Colon and rectum<br />survival_rate_change:  0.160<br />gender: females","cancer_type: Breast<br />survival_rate_change:  0.163<br />gender: females","cancer_type: Stomach<br />survival_rate_change:  0.180<br />gender: females","cancer_type: Leukemia<br />survival_rate_change:  0.261<br />gender: females","cancer_type: Myeloma<br />survival_rate_change:  0.265<br />gender: females"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(248,118,109,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"females","legendgroup":"females","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.30000000000000071,0.30000000000000071,0.44999999999999929,0.29999999999999716,0.30000000000000071,0.44999999999999929,0.30000000000000071,0.30000000000000004,0.30000000000000071,0.30000000000000071,0.29999999999999893,0.29999999999999982,0.30000000000000071,0.30000000000000071,0.30000000000000027,0.44999999999999973],"base":[-0.14600000000000002,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.14600000000000002,0.047,0.065000000000000002,0.06899999999999995,0.07400000000000001,0.11299999999999999,0.11800000000000001,0.14099999999999996,0.14199999999999996,0.14699999999999999,0.19400000000000006,0.20899999999999999,0.245,0.24500000000000005,0.32200000000000006,0.36699999999999994],"y":[14.700000000000001,12.700000000000001,11.775,16.699999999999999,8.7000000000000011,4.7750000000000004,6.7000000000000002,0.7000000000000004,5.7000000000000002,9.7000000000000011,7.7000000000000002,2.7000000000000006,15.700000000000001,10.700000000000001,1.7000000000000004,3.7750000000000004],"text":["cancer_type: Skin<br />survival_rate_change: -0.146<br />gender: females","cancer_type: Pancreas<br />survival_rate_change:  0.047<br />gender: females","cancer_type: Ovary<br />survival_rate_change:  0.065<br />gender: females","cancer_type: Thyroid<br />survival_rate_change:  0.069<br />gender: females","cancer_type: Liver<br />survival_rate_change:  0.074<br />gender: females","cancer_type: Cervix uteri<br />survival_rate_change:  0.113<br />gender: females","cancer_type: Esophagus<br />survival_rate_change:  0.118<br />gender: females","cancer_type: All cancers<br />survival_rate_change:  0.141<br />gender: females","cancer_type: Colon and rectum<br />survival_rate_change:  0.142<br />gender: females","cancer_type: Lung and bronchus<br />survival_rate_change:  0.147<br />gender: females","cancer_type: Leukemia<br />survival_rate_change:  0.194<br />gender: females","cancer_type: Brain and nervous system<br />survival_rate_change:  0.209<br />gender: females","cancer_type: Stomach<br />survival_rate_change:  0.245<br />gender: females","cancer_type: Myeloma<br />survival_rate_change:  0.245<br />gender: females","cancer_type: Bladder<br />survival_rate_change:  0.322<br />gender: females","cancer_type: Breast<br />survival_rate_change:  0.367<br />gender: females"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(248,118,109,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"females","legendgroup":"females","showlegend":false,"xaxis":"x2","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.30000000000000071,0.30000000000000071,0.30000000000000071,0.29999999999999716,0.44999999999999929,0.30000000000000004,0.29999999999999982,0.44999999999999929,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000027,0.29999999999999893,0.30000000000000071,0.44999999999999973,0.30000000000000071],"base":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.063,0.11000000000000001,0.11600000000000001,0.12,0.128,0.13600000000000001,0.13999999999999999,0.14200000000000002,0.16600000000000004,0.17400000000000002,0.20100000000000001,0.22399999999999998,0.27200000000000002,0.27699999999999991,0.29200000000000004,0.41100000000000003],"y":[12.700000000000001,8.7000000000000011,9.7000000000000011,16.699999999999999,4.7750000000000004,0.7000000000000004,2.7000000000000006,11.775,5.7000000000000002,6.7000000000000002,15.700000000000001,1.7000000000000004,7.7000000000000002,14.700000000000001,3.7750000000000004,10.700000000000001],"text":["cancer_type: Pancreas<br />survival_rate_change:  0.063<br />gender: females","cancer_type: Liver<br />survival_rate_change:  0.110<br />gender: females","cancer_type: Lung and bronchus<br />survival_rate_change:  0.116<br />gender: females","cancer_type: Thyroid<br />survival_rate_change:  0.120<br />gender: females","cancer_type: Cervix uteri<br />survival_rate_change:  0.128<br />gender: females","cancer_type: All cancers<br />survival_rate_change:  0.136<br />gender: females","cancer_type: Brain and nervous system<br />survival_rate_change:  0.140<br />gender: females","cancer_type: Ovary<br />survival_rate_change:  0.142<br />gender: females","cancer_type: Colon and rectum<br />survival_rate_change:  0.166<br />gender: females","cancer_type: Esophagus<br />survival_rate_change:  0.174<br />gender: females","cancer_type: Stomach<br />survival_rate_change:  0.201<br />gender: females","cancer_type: Bladder<br />survival_rate_change:  0.224<br />gender: females","cancer_type: Leukemia<br />survival_rate_change:  0.272<br />gender: females","cancer_type: Skin<br />survival_rate_change:  0.277<br />gender: females","cancer_type: Breast<br />survival_rate_change:  0.292<br />gender: females","cancer_type: Myeloma<br />survival_rate_change:  0.411<br />gender: females"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(248,118,109,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"females","legendgroup":"females","showlegend":false,"xaxis":"x3","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.29999999999999993,0.29999999999999716,0.30000000000000071,0.29999999999999982,0.30000000000000071,0.29999999999999982,0.29999999999999893,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.44999999999999929,0.30000000000000071],"base":[-0.039000000000000035,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.039000000000000035,0.050999999999999934,0.055000000000000007,0.055000000000000049,0.066000000000000003,0.13000000000000003,0.14499999999999999,0.14500000000000002,0.16599999999999998,0.16900000000000001,0.17100000000000004,0.26500000000000001,0.31399999999999995,0.32200000000000001],"y":[1,17,10,2,13,3,16,15,7,9,6,11,13.775,8],"text":["cancer_type: All cancers<br />survival_rate_change: -0.039<br />gender: males","cancer_type: Thyroid<br />survival_rate_change:  0.051<br />gender: males","cancer_type: Lung and bronchus<br />survival_rate_change:  0.055<br />gender: males","cancer_type: Bladder<br />survival_rate_change:  0.055<br />gender: males","cancer_type: Pancreas<br />survival_rate_change:  0.066<br />gender: males","cancer_type: Brain and nervous system<br />survival_rate_change:  0.130<br />gender: males","cancer_type: Stomach<br />survival_rate_change:  0.145<br />gender: males","cancer_type: Skin<br />survival_rate_change:  0.145<br />gender: males","cancer_type: Esophagus<br />survival_rate_change:  0.166<br />gender: males","cancer_type: Liver<br />survival_rate_change:  0.169<br />gender: males","cancer_type: Colon and rectum<br />survival_rate_change:  0.171<br />gender: males","cancer_type: Myeloma<br />survival_rate_change:  0.265<br />gender: males","cancer_type: Prostate<br />survival_rate_change:  0.314<br />gender: males","cancer_type: Leukemia<br />survival_rate_change:  0.322<br />gender: males"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(0,186,56,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"males","legendgroup":"males","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.29999999999999893,0.30000000000000071,0.29999999999999716,0.29999999999999982,0.30000000000000071,0.29999999999999993,0.29999999999999982,0.44999999999999929],"base":[-0.071000000000000063,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.071000000000000063,0.073999999999999996,0.091999999999999985,0.10299999999999999,0.14199999999999996,0.14299999999999999,0.20700000000000002,0.21600000000000003,0.22799999999999998,0.24899999999999997,0.28599999999999998,0.33200000000000002,0.45999999999999996,0.624],"y":[15,13,10,7,6,9,16,11,17,3,8,1,2,13.775],"text":["cancer_type: Skin<br />survival_rate_change: -0.071<br />gender: males","cancer_type: Pancreas<br />survival_rate_change:  0.074<br />gender: males","cancer_type: Lung and bronchus<br />survival_rate_change:  0.092<br />gender: males","cancer_type: Esophagus<br />survival_rate_change:  0.103<br />gender: males","cancer_type: Colon and rectum<br />survival_rate_change:  0.142<br />gender: males","cancer_type: Liver<br />survival_rate_change:  0.143<br />gender: males","cancer_type: Stomach<br />survival_rate_change:  0.207<br />gender: males","cancer_type: Myeloma<br />survival_rate_change:  0.216<br />gender: males","cancer_type: Thyroid<br />survival_rate_change:  0.228<br />gender: males","cancer_type: Brain and nervous system<br />survival_rate_change:  0.249<br />gender: males","cancer_type: Leukemia<br />survival_rate_change:  0.286<br />gender: males","cancer_type: All cancers<br />survival_rate_change:  0.332<br />gender: males","cancer_type: Bladder<br />survival_rate_change:  0.460<br />gender: males","cancer_type: Prostate<br />survival_rate_change:  0.624<br />gender: males"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(0,186,56,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"males","legendgroup":"males","showlegend":false,"xaxis":"x2","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.30000000000000071,0.30000000000000071,0.30000000000000071,0.29999999999999982,0.30000000000000071,0.30000000000000071,0.29999999999999893,0.29999999999999716,0.29999999999999982,0.29999999999999993,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.44999999999999929],"base":[0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.083000000000000004,0.099000000000000005,0.161,0.16200000000000001,0.17700000000000005,0.17999999999999999,0.18100000000000002,0.21499999999999997,0.26600000000000001,0.27399999999999997,0.32400000000000001,0.371,0.40900000000000003,0.496],"y":[13,10,9,3,6,7,16,17,2,1,8,11,15,13.775],"text":["cancer_type: Pancreas<br />survival_rate_change:  0.083<br />gender: males","cancer_type: Lung and bronchus<br />survival_rate_change:  0.099<br />gender: males","cancer_type: Liver<br />survival_rate_change:  0.161<br />gender: males","cancer_type: Brain and nervous system<br />survival_rate_change:  0.162<br />gender: males","cancer_type: Colon and rectum<br />survival_rate_change:  0.177<br />gender: males","cancer_type: Esophagus<br />survival_rate_change:  0.180<br />gender: males","cancer_type: Stomach<br />survival_rate_change:  0.181<br />gender: males","cancer_type: Thyroid<br />survival_rate_change:  0.215<br />gender: males","cancer_type: Bladder<br />survival_rate_change:  0.266<br />gender: males","cancer_type: All cancers<br />survival_rate_change:  0.274<br />gender: males","cancer_type: Leukemia<br />survival_rate_change:  0.324<br />gender: males","cancer_type: Myeloma<br />survival_rate_change:  0.371<br />gender: males","cancer_type: Skin<br />survival_rate_change:  0.409<br />gender: males","cancer_type: Prostate<br />survival_rate_change:  0.496<br />gender: males"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(0,186,56,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"males","legendgroup":"males","showlegend":false,"xaxis":"x3","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.44999999999999929,0.29999999999999982,0.29999999999999716,0.30000000000000071,0.30000000000000071,0.44999999999999929,0.30000000000000071,0.29999999999999982,0.30000000000000071,0.29999999999999716,0.30000000000000071,0.44999999999999973,0.30000000000000071,0.29999999999999982,0.30000000000000071,0.30000000000000071,0.44999999999999929],"base":[-0.0030000000000000027,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.0030000000000000027,0.057000000000000051,0.060999999999999943,0.061999999999999993,0.073000000000000009,0.10700000000000004,0.1170000000000001,0.13399999999999998,0.151,0.159,0.15999999999999998,0.16300000000000003,0.16500000000000004,0.20299999999999996,0.26400000000000001,0.29599999999999999,0.31399999999999995],"y":[5.2249999999999996,2.2999999999999998,17.300000000000001,13.300000000000001,10.300000000000001,12.225,15.300000000000001,3.2999999999999998,9.3000000000000007,16.300000000000001,7.2999999999999998,4.2249999999999996,6.2999999999999998,1.3,11.300000000000001,8.3000000000000007,14.225],"text":["cancer_type: Cervix uteri<br />survival_rate_change: -0.003<br />gender: total","cancer_type: Bladder<br />survival_rate_change:  0.057<br />gender: total","cancer_type: Thyroid<br />survival_rate_change:  0.061<br />gender: total","cancer_type: Pancreas<br />survival_rate_change:  0.062<br />gender: total","cancer_type: Lung and bronchus<br />survival_rate_change:  0.073<br />gender: total","cancer_type: Ovary<br />survival_rate_change:  0.107<br />gender: total","cancer_type: Skin<br />survival_rate_change:  0.117<br />gender: total","cancer_type: Brain and nervous system<br />survival_rate_change:  0.134<br />gender: total","cancer_type: Liver<br />survival_rate_change:  0.151<br />gender: total","cancer_type: Stomach<br />survival_rate_change:  0.159<br />gender: total","cancer_type: Esophagus<br />survival_rate_change:  0.160<br />gender: total","cancer_type: Breast<br />survival_rate_change:  0.163<br />gender: total","cancer_type: Colon and rectum<br />survival_rate_change:  0.165<br />gender: total","cancer_type: All cancers<br />survival_rate_change:  0.203<br />gender: total","cancer_type: Myeloma<br />survival_rate_change:  0.264<br />gender: total","cancer_type: Leukemia<br />survival_rate_change:  0.296<br />gender: total","cancer_type: Prostate<br />survival_rate_change:  0.314<br />gender: total"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(97,156,255,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"total","legendgroup":"total","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.29999999999999982,0.44999999999999929,0.30000000000000071,0.29999999999999716,0.30000000000000071,0.44999999999999929,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.30000000000000071,0.29999999999999982,0.30000000000000071,0.29999999999999716,0.30000000000000071,0.44999999999999973,0.29999999999999982,0.44999999999999929],"base":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.0020000000000000018,0.065000000000000002,0.065000000000000002,0.069999999999999951,0.10700000000000001,0.11299999999999999,0.12200000000000001,0.12299999999999998,0.123,0.14199999999999996,0.22899999999999998,0.23000000000000004,0.23399999999999999,0.24399999999999994,0.36699999999999994,0.41400000000000003,0.624],"y":[1.2999999999999996,12.225,13.299999999999999,17.300000000000001,7.2999999999999998,5.2249999999999996,9.2999999999999989,10.299999999999999,15.299999999999999,6.2999999999999998,3.2999999999999994,11.299999999999999,16.300000000000001,8.2999999999999989,4.2249999999999996,2.2999999999999994,14.225],"text":["cancer_type: All cancers<br />survival_rate_change:  0.002<br />gender: total","cancer_type: Ovary<br />survival_rate_change:  0.065<br />gender: total","cancer_type: Pancreas<br />survival_rate_change:  0.065<br />gender: total","cancer_type: Thyroid<br />survival_rate_change:  0.070<br />gender: total","cancer_type: Esophagus<br />survival_rate_change:  0.107<br />gender: total","cancer_type: Cervix uteri<br />survival_rate_change:  0.113<br />gender: total","cancer_type: Liver<br />survival_rate_change:  0.122<br />gender: total","cancer_type: Lung and bronchus<br />survival_rate_change:  0.123<br />gender: total","cancer_type: Skin<br />survival_rate_change:  0.123<br />gender: total","cancer_type: Colon and rectum<br />survival_rate_change:  0.142<br />gender: total","cancer_type: Brain and nervous system<br />survival_rate_change:  0.229<br />gender: total","cancer_type: Myeloma<br />survival_rate_change:  0.230<br />gender: total","cancer_type: Stomach<br />survival_rate_change:  0.234<br />gender: total","cancer_type: Leukemia<br />survival_rate_change:  0.244<br />gender: total","cancer_type: Breast<br />survival_rate_change:  0.367<br />gender: total","cancer_type: Bladder<br />survival_rate_change:  0.414<br />gender: total","cancer_type: Prostate<br />survival_rate_change:  0.624<br />gender: total"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(97,156,255,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"total","legendgroup":"total","showlegend":false,"xaxis":"x2","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.30000000000000071,0.30000000000000071,0.44999999999999929,0.44999999999999929,0.30000000000000071,0.29999999999999982,0.29999999999999716,0.30000000000000071,0.30000000000000071,0.29999999999999716,0.29999999999999982,0.44999999999999973,0.29999999999999982,0.30000000000000071,0.30000000000000071,0.44999999999999929,0.30000000000000071],"base":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"x":[0.079000000000000001,0.11600000000000001,0.128,0.14200000000000002,0.14299999999999999,0.15400000000000003,0.15400000000000003,0.17000000000000004,0.183,0.189,0.25600000000000001,0.29200000000000004,0.31099999999999994,0.33600000000000008,0.38600000000000001,0.496,0.50800000000000001],"y":[13.299999999999999,10.299999999999999,5.2249999999999996,12.225,9.2999999999999989,3.2999999999999994,17.300000000000001,6.2999999999999998,7.2999999999999998,16.300000000000001,2.2999999999999994,4.2249999999999996,1.2999999999999996,15.299999999999999,11.299999999999999,14.225,8.2999999999999989],"text":["cancer_type: Pancreas<br />survival_rate_change:  0.079<br />gender: total","cancer_type: Lung and bronchus<br />survival_rate_change:  0.116<br />gender: total","cancer_type: Cervix uteri<br />survival_rate_change:  0.128<br />gender: total","cancer_type: Ovary<br />survival_rate_change:  0.142<br />gender: total","cancer_type: Liver<br />survival_rate_change:  0.143<br />gender: total","cancer_type: Brain and nervous system<br />survival_rate_change:  0.154<br />gender: total","cancer_type: Thyroid<br />survival_rate_change:  0.154<br />gender: total","cancer_type: Colon and rectum<br />survival_rate_change:  0.170<br />gender: total","cancer_type: Esophagus<br />survival_rate_change:  0.183<br />gender: total","cancer_type: Stomach<br />survival_rate_change:  0.189<br />gender: total","cancer_type: Bladder<br />survival_rate_change:  0.256<br />gender: total","cancer_type: Breast<br />survival_rate_change:  0.292<br />gender: total","cancer_type: All cancers<br />survival_rate_change:  0.311<br />gender: total","cancer_type: Skin<br />survival_rate_change:  0.336<br />gender: total","cancer_type: Myeloma<br />survival_rate_change:  0.386<br />gender: total","cancer_type: Prostate<br />survival_rate_change:  0.496<br />gender: total","cancer_type: Leukemia<br />survival_rate_change:  0.508<br />gender: total"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(97,156,255,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"name":"total","legendgroup":"total","showlegend":false,"xaxis":"x3","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":55.452054794520549,"r":18.99543378995434,"b":40.182648401826498,"l":165.84474885844753},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Change in 5-year Survival Rate % of Different Cancers","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,0.32246140465318546],"automargin":true,"type":"linear","autorange":false,"range":[-0.18450000000000003,0.66249999999999998],"tickmode":"array","ticktext":["0.0","0.2","0.4","0.6"],"tickvals":[0,0.20000000000000004,0.40000000000000013,0.60000000000000009],"categoryorder":"array","categoryarray":["0.0","0.2","0.4","0.6"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":"","hoverformat":".2f"},"annotations":[{"text":"Survival Rate Change from 1977 to 2013","x":0.5,"y":0,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"xref":"paper","yref":"paper","textangle":-0,"xanchor":"center","yanchor":"top","annotationType":"axis","yshift":-21.917808219178081},{"text":"cancer_type","x":0,"y":0.5,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"xref":"paper","yref":"paper","textangle":-90,"xanchor":"right","yanchor":"center","annotationType":"axis","xshift":-150.50228310502291},{"text":"All races","x":0.16123070232659273,"y":1,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(26,26,26,1)","family":"","size":11.68949771689498},"xref":"paper","yref":"paper","textangle":-0,"xanchor":"center","yanchor":"bottom"},{"text":"Black","x":0.5,"y":1,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(26,26,26,1)","family":"","size":11.68949771689498},"xref":"paper","yref":"paper","textangle":-0,"xanchor":"center","yanchor":"bottom"},{"text":"White","x":0.83876929767340724,"y":1,"showarrow":false,"ax":0,"ay":0,"font":{"color":"rgba(26,26,26,1)","family":"","size":11.68949771689498},"xref":"paper","yref":"paper","textangle":-0,"xanchor":"center","yanchor":"bottom"}],"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.40000000000000002,17.600000000000001],"tickmode":"array","ticktext":["All cancers","Bladder","Brain and nervous system","Breast","Cervix uteri","Colon and rectum","Esophagus","Leukemia","Liver","Lung and bronchus","Myeloma","Ovary","Pancreas","Prostate","Skin","Stomach","Thyroid"],"tickvals":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],"categoryorder":"array","categoryarray":["All cancers","Bladder","Brain and nervous system","Breast","Cervix uteri","Colon and rectum","Esophagus","Leukemia","Liver","Lung and bronchus","Myeloma","Ovary","Pancreas","Prostate","Skin","Stomach","Thyroid"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":"","hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":0.32246140465318546,"y0":0,"y1":1},{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":0.32246140465318546,"y0":0,"y1":23.37899543378996,"yanchor":1,"ysizemode":"pixel"},{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0.34420526201348117,"x1":0.65579473798651877,"y0":0,"y1":1},{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0.34420526201348117,"x1":0.65579473798651877,"y0":0,"y1":23.37899543378996,"yanchor":1,"ysizemode":"pixel"},{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0.67753859534681449,"x1":1,"y0":0,"y1":1},{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0.67753859534681449,"x1":1,"y0":0,"y1":23.37899543378996,"yanchor":1,"ysizemode":"pixel"}],"xaxis2":{"type":"linear","autorange":false,"range":[-0.18450000000000003,0.66249999999999998],"tickmode":"array","ticktext":["0.0","0.2","0.4","0.6"],"tickvals":[0,0.20000000000000004,0.40000000000000013,0.60000000000000009],"categoryorder":"array","categoryarray":["0.0","0.2","0.4","0.6"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"domain":[0.34420526201348117,0.65579473798651877],"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":"","hoverformat":".2f"},"xaxis3":{"type":"linear","autorange":false,"range":[-0.18450000000000003,0.66249999999999998],"tickmode":"array","ticktext":["0.0","0.2","0.4","0.6"],"tickvals":[0,0.20000000000000004,0.40000000000000013,0.60000000000000009],"categoryorder":"array","categoryarray":["0.0","0.2","0.4","0.6"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"domain":[0.67753859534681449,1],"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":"","hoverformat":".2f"},"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498},"title":{"text":"gender","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"3c8c2bcfb7ee":{"x":{},"y":{},"fill":{},"type":"bar"}},"cur_data":"3c8c2bcfb7ee","visdat":{"3c8c2bcfb7ee":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<p>From this chart, we can conclude that there have been improvements in almost all cancer treatments with a few exceptions — for example, skin cancer amongst black females has seen a noticeable drop in 5-year survival rates. Why would this be?</p>
+</section>
+<section id="conlcusion" class="level2">
+<h2 class="anchored" data-anchor-id="conlcusion">Conlcusion</h2>
+<p>This is a quick and dirty look at the data to get a sense of where we are, but overall still speaks to the original comment — understanding survival rates is complicated and all interpretations have to be looked at within their respective contexts.</p>
+</section>
+<section id="pkgs" class="level2">
+<h2 class="anchored" data-anchor-id="pkgs">Pkgs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.2.2 (2022-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS 14.1.2
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base     
+
+other attached packages:
+ [1] data.world_1.3.1 dwapi_0.3.2      plotly_4.10.4    ggrain_0.0.4    
+ [5] lubridate_1.9.2  forcats_1.0.0    stringr_1.5.0    dplyr_1.1.4     
+ [9] purrr_1.0.2      readr_2.1.5      tidyr_1.3.0      tibble_3.2.1    
+[13] ggplot2_3.4.3    tidyverse_2.0.0 
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1  xfun_0.37         colorspace_2.1-0  vctrs_0.6.5      
+ [5] generics_0.1.3    htmltools_0.5.8.1 viridisLite_0.4.2 yaml_2.3.6       
+ [9] utf8_1.2.4        rlang_1.1.3       pillar_1.9.0      glue_1.7.0       
+[13] withr_3.0.0       bit64_4.0.5       ini_0.3.1         lifecycle_1.0.4  
+[17] munsell_0.5.0     gtable_0.3.3      htmlwidgets_1.6.2 evaluate_0.22    
+[21] labeling_0.4.2    knitr_1.42        tzdb_0.4.0        gghalves_0.1.4   
+[25] fastmap_1.1.1     crosstalk_1.2.1   parallel_4.2.2    curl_5.2.1       
+[29] fansi_1.0.6       ggpp_0.5.6        polynom_1.4-1     renv_1.0.5       
+[33] scales_1.2.1      vroom_1.6.5       jsonlite_1.8.8    farver_2.1.1     
+[37] bit_4.0.5         hms_1.1.3         digest_0.6.35     stringi_1.8.3    
+[41] grid_4.2.2        cli_3.6.2         tools_4.2.2       magrittr_2.0.3   
+[45] lazyeval_0.2.2    crayon_1.5.2      pkgconfig_2.0.3   MASS_7.3-58.1    
+[49] data.table_1.14.8 timechange_0.2.0  rmarkdown_2.21    httr_1.4.7       
+[53] R6_2.5.1          compiler_4.2.2   </code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

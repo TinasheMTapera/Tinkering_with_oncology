@@ -1,0 +1,21 @@
+project:
+  type: website
+  render:
+  - "*.qmd"
+
+website:
+  title: "Data Science in Oncology"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - Survival_Rates.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+
+

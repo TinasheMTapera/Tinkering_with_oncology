@@ -1,29 +1,35 @@
 ---
-title: "Quick Peek into Oncology Data Science"
+title: "Understanding Survival Rates"
 format: html
 ---
 
-I was looking at the work of data scientists in Oncology and decided to give
-a naive try at what they do. So, here it goes.
-
-## Patient Journeys
-
 An important caveat about understanding cancer is that treatment is not necessarily
-about "curing" the disease; to summarise [Hank Green](https://www.youtube.com/watch?v=cepUz29tqEI),
+about "curing" the disease; to summarise [Hank Green, a YouTuber who documented his diagnosis and treatment](https://www.youtube.com/watch?v=cepUz29tqEI),
 of the 9000 Americans who develop Hodgkin Lymphoma, 900 die. "Boom, that's your statistic right
-there, 10%, RIGHT? NOPE, WRONG!"
+there, 10%, right? Nope, not really!"
 
 Survival rates are not designed to be interpreted as simply as that; according to the
 CDC, such interpretations don't take into account factors like the age of the individual
 at time of diagnosis, the duration of the disease, the stage of the cancer, and
 sophistication of available treatment and technology, and many other factors.
-You can see this from the following visualization:
+Let's take a look at some data to understand this better.
 
+## Patient Journeys
+
+I found a small data set from [Our World In Data](https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america)
+that we can use to visualize how patients' journeys are not always the same.
+
+### Fetching the Data
+
+We'll use the `data.world` package to pull directly from
+the site and use a short SQL query to check the tables and pull the data into a dataframe:
 ```{r}
-library(tidyverse)
-library(ggrain)
-library(plotly)
-library(data.world)
+suppressPackageStartupMessages({
+    library(tidyverse)
+    library(ggrain)
+    library(plotly)
+    library(data.world)
+})
 ```
 
 ```{r}
@@ -51,7 +57,9 @@ five_yr
 From glimpsing this data, we can see that the term "survival rate"
 can be broken down by race, gender, and cancer type. Essentially, each row
 tells us what the 5-year survival rate would be that year for a person
-who contracts that cancer. Let's look:
+who contracts that cancer. 
+
+Let's visualize:
 
 ```{r}
 five_yr %>% 
@@ -83,7 +91,7 @@ five_yr %>%
 ```
 
 These data appear to be a bit of a mish mosh, but remember that this is
-_over time_. Let's try and put that in perspective by replicating the
+_over time_. Let's try and put that in perspective by making something similar to the
 [original plot](https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america).
 
 Let's take a look at leukemia for example:
@@ -100,7 +108,9 @@ This shows an upward trend overall, but there wouldn't be enough reasonable room
 to plot each and every combination of variables. We should reasonably compress some
 of them. I'm going to assume that we wouldn't be missing out on too much
 if we ignored intermittent downward trends, so maybe it would be interesting
- to see the change in survival rate over time?
+to see the change in survival rate over time?
+
+## Change in Survival Rate Over Time
 
 ```{r}
 five_yr %>%
@@ -140,7 +150,7 @@ pp <- five_yr_change %>%
     coord_flip() +
     theme_minimal() +
     facet_grid(~race) + 
-    labs(title = "Change in % 5-year Survival Rates of Different Cancers from 1977 to 2013", subtitle = "Race",
+    labs(title = "Change in 5-year Survival Rate % of Different Cancers", y = "Survival Rate Change from 1977 to 2013", 
     caption = "The plot shows how the percentage of people who survive 5 years after diagnosis has changed over the last 40 years.")
 
 ggplotly(pp)
@@ -148,8 +158,15 @@ ggplotly(pp)
 
 From this chart, we can conclude that there have been improvements in almost all
 cancer treatments with a few exceptions — for example, skin cancer amongst black females
-has seen a noticeable drop in 5-year survival rates.
+has seen a noticeable drop in 5-year survival rates. Why would this be?
+
+## Conlcusion
 
 This is a quick and dirty look at the data to get a sense of where we are, but overall
 still speaks to the original comment — understanding survival rates is complicated
 and all interpretations have to be looked at within their respective contexts.
+
+## Pkgs
+```{r}
+sessionInfo()
+```
