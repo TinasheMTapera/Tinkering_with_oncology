@@ -1,0 +1,155 @@
+---
+title: "Quick Peek into Oncology Data Science"
+format: html
+---
+
+I was looking at the work of data scientists in Oncology and decided to give
+a naive try at what they do. So, here it goes.
+
+## Patient Journeys
+
+An important caveat about understanding cancer is that treatment is not necessarily
+about "curing" the disease; to summarise [Hank Green](https://www.youtube.com/watch?v=cepUz29tqEI),
+of the 9000 Americans who develop Hodgkin Lymphoma, 900 die. "Boom, that's your statistic right
+there, 10%, RIGHT? NOPE, WRONG!"
+
+Survival rates are not designed to be interpreted as simply as that; according to the
+CDC, such interpretations don't take into account factors like the age of the individual
+at time of diagnosis, the duration of the disease, the stage of the cancer, and
+sophistication of available treatment and technology, and many other factors.
+You can see this from the following visualization:
+
+```{r}
+library(tidyverse)
+library(ggrain)
+library(plotly)
+library(data.world)
+```
+
+```{r}
+ds <- "https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america"
+
+tables <- data.world::query(
+    data.world::qry_sql("SELECT * FROM Tables"),
+    dataset = ds
+)
+
+print(tables)
+```
+
+```{r}
+query <- "SELECT * from five_year_cancer_survival_rates_in_usa"
+
+five_yr <- data.world::query(
+    data.world::qry_sql(query),
+    dataset = ds
+)
+
+five_yr
+```
+
+From glimpsing this data, we can see that the term "survival rate"
+can be broken down by race, gender, and cancer type. Essentially, each row
+tells us what the 5-year survival rate would be that year for a person
+who contracts that cancer. Let's look:
+
+```{r}
+five_yr %>% 
+    ggplot(aes(x = 1, y = survival_rate, fill = race, colour = race)) +
+    theme_minimal() +
+    geom_rain(alpha = .5) +
+    coord_flip() +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank())+ 
+    labs(title = "Survival rates of aspects of cancer over time", subtitle = "Race")
+```
+
+```{r}
+five_yr %>%
+     ggplot(aes(x = 1, y = survival_rate, fill = gender, colour = gender)) +
+    theme_minimal() +
+    geom_rain(alpha = .5) +
+    coord_flip() +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank())+ 
+    labs(title = "Survival rates of aspects of cancer over time", subtitle = "Gender")
+```
+
+```{r}
+five_yr %>%
+    ggplot(aes(x = cancer_type, y = survival_rate)) +
+    theme_minimal() +
+    geom_violin() +
+    theme(axis.text.x = element_text(angle = 45))+ 
+    labs(title = "Survival rates of aspects of cancer over time", subtitle = "Cancer type")
+```
+
+These data appear to be a bit of a mish mosh, but remember that this is
+_over time_. Let's try and put that in perspective by replicating the
+[original plot](https://data.world/makeovermonday/2018w40-five-year-cancer-survival-rates-in-america).
+
+Let's take a look at leukemia for example:
+
+```{r}
+five_yr %>%
+    filter(cancer_type == "Leukemia") %>%
+    ggplot(aes(x = year, y = survival_rate, colour = race)) +
+    geom_line() +
+    facet_grid(gender~cancer_type)
+```
+
+This shows an upward trend overall, but there wouldn't be enough reasonable room
+to plot each and every combination of variables. We should reasonably compress some
+of them. I'm going to assume that we wouldn't be missing out on too much
+if we ignored intermittent downward trends, so maybe it would be interesting
+ to see the change in survival rate over time?
+
+```{r}
+five_yr %>%
+    filter(cancer_type == "Leukemia") %>%
+    filter(!is.na(survival_rate)) %>%
+    group_by(race, gender) %>%
+    summarise(survival_rate_change = last(survival_rate) - first(survival_rate))
+```
+
+In this table, the percent of people who survive leukemia has increased
+by the value in the rightmost column. We can think of this as an
+"improvement in outcomes" measure over time. Let's do this for all cancers:
+
+```{r}
+five_yr %>%
+    filter(!is.na(survival_rate)) %>%
+    group_by(race, gender, cancer_type) %>%
+    summarise(survival_rate_change = last(survival_rate) - first(survival_rate)) %>%
+    arrange(survival_rate_change)
+```
+
+This is interesting. We can now see that improvement
+varies by race, gender, and cancer type, with some survival
+rates actually _decreasing_ over time. That's worrying. Let's plot
+this to see the full gambit:
+
+```{r}
+five_yr %>%
+    filter(!is.na(survival_rate)) %>%
+    group_by(race, gender, cancer_type) %>%
+    summarise(survival_rate_change = last(survival_rate) - first(survival_rate)) %>%
+    arrange(survival_rate_change) -> five_yr_change
+
+pp <- five_yr_change %>%
+    ggplot(aes(y = survival_rate_change, x=cancer_type, fill=gender)) +
+    geom_col(position = "dodge") +
+    coord_flip() +
+    theme_minimal() +
+    facet_grid(~race) + 
+    labs(title = "Change in % 5-year Survival Rates of Different Cancers from 1977 to 2013", subtitle = "Race",
+    caption = "The plot shows how the percentage of people who survive 5 years after diagnosis has changed over the last 40 years.")
+
+ggplotly(pp)
+```
+
+From this chart, we can conclude that there have been improvements in almost all
+cancer treatments with a few exceptions — for example, skin cancer amongst black females
+has seen a noticeable drop in 5-year survival rates.
+
+This is a quick and dirty look at the data to get a sense of where we are, but overall
+still speaks to the original comment — understanding survival rates is complicated
+and all interpretations have to be looked at within their respective contexts.
