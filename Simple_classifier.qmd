@@ -1,0 +1,376 @@
+---
+title: "Simple Lung Cancer Classifier"
+format: html
+---
+
+### Introduction
+
+Machine learning is an effective tool to use in oncology. By training
+models on simple phenotypic characteristics,
+it's possible to train powerful classifiers for predicting
+whether or not an individual may have cancer. These kinds of simple classifiers
+can be used as early detection mechanisms, such that even from a small
+amount of phenotypic descriptions, doctors can save time by quickly
+sifting through the probability of a cancer being the root cause of
+someone's illness.
+
+Let's build a quick classifier for lung cancer based on an example [Kaggle dataset](https://www.kaggle.com/code/casper6290/lung-cancer-prediction-98#4-|-Data-Preprocessing).
+
+```{r}
+suppressPackageStartupMessages(
+    {
+    library(tidyverse)
+    library(tidymodels)
+    library(skimr)
+    library(themis)
+    }
+)
+```
+
+Let's look at the data:
+
+```{r}
+url <- "https://storage.googleapis.com/kagglesdsdata/datasets/1623385/2668247/survey%20lung%20cancer.csv?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20240506%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20240506T191835Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=2d244357131a33758f10bf7f3a83f5584f02ba69ab6ef5e31cb5f7c9cc3ea73922db7cb03bb47b5345455b27f4c25f4434be415327d7817b954933fe86aefc50b07fb4e6a0736238366f4a922a91615222be63de02ab687a9759eace7c59e62468deb656a3abafea85a93f0fd77fac708c2d37bece32da9669b5add662affdcfa40c73b9a8413d9039f207492544aba4ddd2f13baaa10a4b92327ea52db9322797db7113eeb00deb5ed073ddde2c58915c7b94710a2bec1dc03e4950fb20234837f03b0d4a7d5bbbbcde8c98eb2c1e7355acd3c179adf9f66d626c27ee70b46828f7d1e0b8222e446296fc3d813b8dfd42219bc6887266bf6bcc9c2ae2750aaa"
+df <- read_csv(url)
+```
+
+```{r}
+skim(df)
+```
+
+From this, we understand that almost all of the variables are binary "Y|N" questions,
+with the exception of `age`. Let's see the distribution of data:
+
+```{r}
+df %>%
+    ggplot(aes(x=LUNG_CANCER)) +
+    geom_bar()
+```
+
+This is imbalanced data for sure, as we can see there are multiple
+positive cases of lung cancer than negative. We'll keep this in mind
+for later. For now, let's see if there's any noticeable distribution differences
+in the two classes:
+
+```{r}
+df %>%
+    group_by(LUNG_CANCER) %>%
+    skim()
+```
+
+It looks like fatigue, yellow fingers, allergies, alcohol consumption, and swallowing
+difficulty are are likely going to be particularly discriminant in differentiating
+the diagnoses, because they have noticeable imbalance for each case in the histograms.
+
+### First Model
+
+Because this is a dataset with a lot of binary decisions,
+it makes the most sense to use a decision-tree-based model for this
+data. Additionally, we're going to use a validation set to test
+our model so that we don't commit data leakage.
+
+```{r}
+train_test_split <- initial_validation_split(df, prop = c(0.60, 0.2), strata = LUNG_CANCER)
+
+train <- training(train_test_split)
+test <- testing(train_test_split)
+val <- validation(train_test_split)
+```
+
+Now using `tidymodels`, build a workflow:
+
+```{r}
+rec <- recipe(LUNG_CANCER ~ ., data = train)
+
+rf_mod <- rand_forest(mode = "classification", trees = 2000)
+
+rf_flow <- workflow() %>%
+    add_recipe(rec) %>%
+    add_model(rf_mod)
+
+rf_fit <- fit(rf_flow, train)
+```
+
+Our naive fit:
+
+```{r}
+classification_metrics <- metric_set(accuracy, f_meas)
+
+rf_fit %>%
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    classification_metrics(truth = actual, estimate = .pred_class)
+
+```
+
+So on the validation set, we had high accuracy but a low F-score. Let's see why
+that is:
+
+```{r}
+rf_fit %>%
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    conf_mat(truth = actual, estimate = .pred_class)
+```
+
+So even in this small case, we were leaning towards predicting someone
+_without_ cancer as them having cancer, which is a false positive. Let's see if
+we can remedy this at all by tuning some of the random forest parameters:
+
+### Hyperparameter Tuning
+
+```{r}
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+  ) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+```
+
+```{r}
+folds <- vfold_cv(train)
+```
+
+```{r}
+tune_rf_wf <- workflow() %>%
+  add_recipe(rec) %>%
+  add_model(tune_spec)
+
+set.seed(12345)
+tune_res <- tune_grid(
+  tune_rf_wf,
+  resamples = folds,
+  grid = 20,
+  metrics = classification_metrics
+)
+```
+
+Now let's look at how the classification metrics over these tuned
+parameters:
+
+```{r}
+tune_res %>%
+    collect_metrics() %>%
+    filter(.metric == "f_meas") %>%
+    arrange(-mean)
+```
+
+The F score hasn't improved by resampling, so instead, let's
+over sample the minority case in our recipe:
+
+### SMOTE for Imbalance
+
+```{r}
+rec %>%
+    step_dummy(GENDER) %>%
+    step_smote(LUNG_CANCER) -> rec_ov_sampled
+```
+
+Let's see how this affects the data:
+
+```{r}
+rec %>%
+    prep() %>%
+    juice() %>%
+    group_by(LUNG_CANCER) %>%
+    skim()
+```
+
+```{r}
+rec %>%
+    prep() %>%
+    juice() %>%
+    ggplot(aes(x=LUNG_CANCER)) +
+    geom_bar() +
+    labs(title = "Lung Cancer diagnoses before SMOTE")
+```
+
+```{r}
+rec_ov_sampled %>%
+    prep() %>%
+    juice() %>%
+    group_by(LUNG_CANCER) %>%
+    skim()
+```
+
+```{r}
+rec_ov_sampled %>%
+    prep() %>%
+    juice() %>%
+    ggplot(aes(x=LUNG_CANCER)) +
+    geom_bar() +
+    labs(title = "Lung Cancer diagnoses after SMOTE")
+```
+
+Let's try the model out with this recipe instead...
+
+```{r}
+rf_smote_flow <- workflow() %>%
+    add_recipe(rec_ov_sampled) %>%
+    add_model(rf_mod)
+
+rf_fit <- fit(rf_smote_flow, train)
+```
+
+```{r}
+rf_fit %>%
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    conf_mat(truth = actual, estimate = .pred_class)
+```
+
+In this case, we've squeezed one better prediction out, and importantly it
+was indeed a false negative that we converted to a true positive.
+
+I believe it's probably time to try a different model — maybe RF isn't
+best suited for this task.
+
+### SVM
+
+Support vector machines are also good classifiers. Let's try that out.
+
+```{r}
+svm_mod <- svm_linear(
+  cost = double(1),
+  margin = double(1)
+) %>%  
+  set_mode("classification")
+```
+
+```{r}
+svm_smote_flow <- workflow() %>%
+    add_recipe(rec_ov_sampled) %>%
+    add_model(svm_mod)
+
+svm_fit <- fit(svm_smote_flow, train)
+```
+
+```{r}
+svm_fit %>% 
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    conf_mat(truth = actual, estimate = .pred_class)
+```
+
+Interestingly, this model has more false negatives! Very bad for a field like cancer. Let's try to tune it:
+
+```{r}
+tune_spec <- svm_linear(
+  cost = tune(),
+  margin = tune()
+) %>%  
+  set_mode("classification")
+
+tune_svm_wf <- workflow() %>%
+  add_recipe(rec_ov_sampled) %>%
+  add_model(tune_spec)
+
+tune_res <- tune_grid(
+  tune_svm_wf,
+  resamples = folds,
+  grid = 50,
+  metrics = classification_metrics
+)
+```
+
+```{r}
+tune_res %>%
+    collect_metrics() %>%
+    filter(.metric == "f_meas") %>%
+    arrange(-mean)
+```
+
+It looks like there is an improvement in F score over the random forest,
+so I'll stick with this model for now.
+
+Let's try these best parameters:
+
+```{r}
+best <- tune_res %>% select_best(metric = "f_meas")
+```
+
+```{r}
+svm_best <- svm_linear(
+  cost = best$cost,
+  margin = best$margin
+) %>%  
+  set_mode("classification")
+
+svm_smote_flow <- workflow() %>%
+    add_recipe(rec_ov_sampled) %>%
+    add_model(svm_best)
+
+svm_fit <- fit(svm_smote_flow, train)
+```
+
+```{r}
+svm_fit %>% 
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    classification_metrics(truth = actual, estimate = .pred_class)
+```
+
+Not much improvement!
+
+### Another Model: Decision Tree `rpart`
+
+I've had some success with this algorithm in the past, let's see if it works here:
+
+```{r}
+rpart_mod <- decision_tree(
+    mode = "classification"
+)
+```
+
+```{r}
+rpart_flow <- workflow() %>%
+    add_recipe(rec_ov_sampled) %>%
+    add_model(rpart_mod)
+
+rpart_fit <- fit(svm_smote_flow, train)
+```
+
+```{r}
+rpart_fit %>% 
+    predict(val) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    conf_mat(truth = actual, estimate = .pred_class)
+```
+
+Not too much better, to be honest. For the sake of time, let's
+settle on our best, the tuned SVM with a margin of `r best$margin` and cost of `r best$cost`.
+
+```{r}
+svm_fit %>%
+    predict(test) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    conf_mat(truth = actual, estimate = .pred_class)
+```
+
+```{r}
+svm_fit %>%
+    predict(test) %>%
+    bind_cols(., actual = as.factor(val$LUNG_CANCER)) %>%
+    classification_metrics(truth = actual, estimate = .pred_class)
+```
+
+## Conclusion
+
+One of the most important aspects of disease prediction,
+especially for a disease like cancer, is that your models should
+ultimately be attempting to reduce harmful errors. In this case,
+false negatives would be devastating as they can be costly.
+In this experiment, I found using the F-measure to be a good
+metric as it let's us measure not just accuracy, but also the
+likelihood of making such errors (called _Recall_ in this example).
+
+The final model underperformed in this respect, but I'm sure given some
+more time, there is an ideal model and parameter set that would
+reduce false negatives.
+
+
+```{r}
+sessionInfo()
+```
